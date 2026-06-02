@@ -1,0 +1,5 @@
+# Kafka client library for Python — used to publish financial news articles
+# to the "raw-news" Kafka topic
+# Note: Using kafka-python-ng (maintained fork) instead of kafka-python,
+# which is abandoned and broken on Python 3.12+
+kafka-python-ng==2.2.3
