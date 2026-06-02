@@ -1,0 +1,12 @@
+# =============================================================================
+# Archer Consumer — Dependencies
+# =============================================================================
+# kafka-python-ng : Maintained fork of kafka-python (original is broken on 3.12+)
+# transformers    : HuggingFace library for loading FinBERT sentiment model
+# torch           : PyTorch backend required by transformers for inference
+# scipy           : Required by some transformers model outputs (softmax, etc.)
+# =============================================================================
+kafka-python-ng==2.2.3
+transformers==5.9.0
+torch==2.6.0
+scipy==1.14.1

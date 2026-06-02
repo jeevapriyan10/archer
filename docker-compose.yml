@@ -1,0 +1,66 @@
+# =============================================================================
+# Archer — Docker Compose Configuration
+# =============================================================================
+# Defines the core infrastructure services for the Archer fintech pipeline:
+#   1. Zookeeper  — Coordination service required by Kafka
+#   2. Kafka      — Message broker for streaming financial news articles
+#   3. PostgreSQL — Persistent storage for processed sentiment data
+# =============================================================================
+
+version: '3.8'
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # Zookeeper: Kafka's coordination and metadata service
+  # Kafka relies on Zookeeper for broker discovery, topic config, and leader
+  # election. This must start before Kafka.
+  # ---------------------------------------------------------------------------
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  # ---------------------------------------------------------------------------
+  # Kafka: Distributed event streaming platform
+  # Two listeners are configured:
+  #   - PLAINTEXT (kafka:29092)       → for inter-container communication
+  #   - PLAINTEXT_HOST (localhost:9092) → for host-machine access (dev tools)
+  # Replication factor is 1 since we run a single-broker setup.
+  # ---------------------------------------------------------------------------
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL: Relational database for storing processed articles & sentiment
+  # A named volume 'pgdata' ensures data survives container restarts.
+  # Credentials are hardcoded for local development only.
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:15
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: archer
+      POSTGRES_PASSWORD: archer123
+      POSTGRES_DB: archerdb
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+# Named volumes for data persistence across container lifecycles
+volumes:
+  pgdata:
