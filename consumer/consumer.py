@@ -12,6 +12,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 import json
 import time
+import requests
 from datetime import datetime, timezone
 import selectors
 
@@ -242,6 +243,17 @@ try:
 
         save_to_db(enriched)
         print(f"[DB] Saved -> {ticker} | {sentiment['sentiment_label']} | {sentiment['sentiment_score']}")
+
+        # Push to API WebSocket queue (fire-and-forget)
+        try:
+            requests.post(
+                "http://localhost:8000/internal/push-sentiment",
+                json=enriched,
+                timeout=1,
+            )
+        except Exception:
+            print("[WS] API not available, skipping push")
+
         print()
 
 except KeyboardInterrupt:
