@@ -1,10 +1,15 @@
 """
 Archer — FinBERT Sentiment Consumer
 Consumes financial news articles from Kafka, runs them through FinBERT
-sentiment classification, and prints enriched results.
+sentiment classification, persists results to PostgreSQL, and prints output.
 """
 
+import sys
 import os
+
+# Allow imports from the project root (e.g. db.database, db.models)
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 import json
 import time
 from datetime import datetime, timezone
@@ -62,7 +67,18 @@ sentiment_pipeline = hf_pipeline(
     return_all_scores=True,
 )
 
-print("[ARCHER] FinBERT ready. Connecting to Kafka...")
+print("[ARCHER] FinBERT ready.")
+
+
+# ---------------------------------------------------------------------------
+# Database Initialization
+# ---------------------------------------------------------------------------
+from db.database import init_db, get_db
+from db.models import SentimentScore, TickerAggregate
+from sqlalchemy import text
+
+init_db()
+print("[ARCHER] Database initialized. Connecting to Kafka...")
 
 
 # ---------------------------------------------------------------------------
@@ -86,9 +102,7 @@ print("[ARCHER] Consuming from raw-news topic...\n")
 # Sentiment Analysis
 # ---------------------------------------------------------------------------
 def analyze_sentiment(headline: str) -> dict:
-    """
-    Run a news headline through FinBERT and return classification scores.
-    """
+    """Run a news headline through FinBERT and return classification scores."""
     truncated = headline[:512]
     raw_results = sentiment_pipeline(truncated)
 
@@ -120,6 +134,64 @@ def analyze_sentiment(headline: str) -> dict:
         "sentiment_score": sentiment_score,
         "sentiment_label": sentiment_label,
     }
+
+
+# ---------------------------------------------------------------------------
+# Database Persistence
+# ---------------------------------------------------------------------------
+UPSERT_SQL = text("""
+    INSERT INTO ticker_aggregates
+        (ticker, avg_sentiment, bullish_count, bearish_count, neutral_count,
+         total_articles, last_score, last_label, last_updated)
+    VALUES
+        (:ticker, :score, :bullish, :bearish, :neutral,
+         1, :score, :label, now())
+    ON CONFLICT (ticker) DO UPDATE SET
+        avg_sentiment = (
+            ticker_aggregates.avg_sentiment * ticker_aggregates.total_articles
+            + EXCLUDED.avg_sentiment
+        ) / (ticker_aggregates.total_articles + 1),
+        bullish_count  = ticker_aggregates.bullish_count  + EXCLUDED.bullish_count,
+        bearish_count  = ticker_aggregates.bearish_count  + EXCLUDED.bearish_count,
+        neutral_count  = ticker_aggregates.neutral_count  + EXCLUDED.neutral_count,
+        total_articles = ticker_aggregates.total_articles + 1,
+        last_score     = EXCLUDED.last_score,
+        last_label     = EXCLUDED.last_label,
+        last_updated   = now()
+""")
+
+
+def save_to_db(enriched: dict):
+    """Persist a single enriched sentiment record and update ticker aggregates."""
+    try:
+        with get_db() as session:
+            record = SentimentScore(
+                ticker=enriched["ticker"],
+                headline=enriched["headline"],
+                source=enriched["source"],
+                sentiment_score=enriched["sentiment_score"],
+                positive=enriched["positive"],
+                negative=enriched["negative"],
+                neutral=enriched["neutral"],
+                sentiment_label=enriched["sentiment_label"],
+                article_id=enriched["id"],
+                article_ts=int(enriched["timestamp"]),
+            )
+            session.add(record)
+
+            label = enriched["sentiment_label"]
+            session.execute(UPSERT_SQL, {
+                "ticker": enriched["ticker"],
+                "score": enriched["sentiment_score"],
+                "bullish": 1 if label == "BULLISH" else 0,
+                "bearish": 1 if label == "BEARISH" else 0,
+                "neutral": 1 if label == "NEUTRAL" else 0,
+                "label": label,
+            })
+
+            session.commit()
+    except Exception as e:
+        print(f"[DB ERROR] Failed to save {enriched.get('id', '???')}: {e}")
 
 
 # ---------------------------------------------------------------------------
@@ -167,6 +239,9 @@ try:
         print(f"Scores   -> pos: {sentiment['positive']} | neg: {sentiment['negative']} | neu: {sentiment['neutral']}")
         print(f"Time     : {readable_time}")
         print(SEPARATOR)
+
+        save_to_db(enriched)
+        print(f"[DB] Saved -> {ticker} | {sentiment['sentiment_label']} | {sentiment['sentiment_score']}")
         print()
 
 except KeyboardInterrupt:
