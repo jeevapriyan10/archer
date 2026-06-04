@@ -1,19 +1,6 @@
-/**
- * App.js -- Archer Dashboard Root Component
- *
- * Assembles all panels into a 3-row grid layout:
- *   Row 1: Horizontal scroll of 8 TickerCards
- *   Row 2: LiveFeed (40%) + FraudPanel (60%)
- *   Row 3: SentimentChart (55%) + FlaggedTransactions (45%)
- *
- * Dark theme throughout. WebSocket connection drives the LiveFeed.
- * Ticker data refreshes every 10 seconds via polling.
- */
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { fetchTickers } from './api';
 import useWebSocket from './hooks/useWebSocket';
-import TickerCard from './components/TickerCard';
 import LiveFeed from './components/LiveFeed';
 import FraudPanel from './components/FraudPanel';
 import SentimentChart from './components/SentimentChart';
@@ -21,13 +8,39 @@ import FlaggedTransactions from './components/FlaggedTransactions';
 
 const WS_URL = process.env.REACT_APP_WS_URL || 'ws://localhost:8000/ws/sentiment';
 
-// Pulsing animation for the LIVE indicator dot
-const PULSE_CSS = `
-@keyframes archerPulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50%      { opacity: 0.5; transform: scale(1.3); }
-}
-`;
+// Helper component for the top bar mini tickers
+const MiniTicker = ({ ticker }) => {
+  const score = ticker.last_score || 0;
+  const isUp = score >= 0;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', padding: '0 20px', borderRight: '1px solid #e0e3eb' }}>
+      <div style={{ fontSize: 12, color: '#787b86', fontWeight: 600 }}>{ticker.ticker}</div>
+      <div style={{ fontSize: 14, fontWeight: 700, color: '#131722', display: 'flex', alignItems: 'center', gap: 6 }}>
+        {score.toFixed(4)}
+        <span style={{ fontSize: 11, color: isUp ? '#089981' : '#f23645' }}>
+          {isUp ? '▲' : '▼'}
+        </span>
+      </div>
+    </div>
+  );
+};
+
+// Helper component for the right sidebar positions
+const PositionCard = ({ ticker }) => {
+  const score = ticker.last_score || 0;
+  const isUp = score >= 0;
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #f0f3f6' }}>
+      <div style={{ fontWeight: 600, fontSize: 13, color: '#131722' }}>{ticker.ticker}</div>
+      <div style={{ display: 'flex', gap: 16, fontSize: 13, fontWeight: 500 }}>
+        <div style={{ color: '#131722' }}>{ticker.total_articles}</div>
+        <div style={{ color: isUp ? '#089981' : '#f23645', width: 60, textAlign: 'right' }}>
+          {score > 0 ? '+' : ''}{score.toFixed(2)}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default function App() {
   const [tickers, setTickers] = useState([]);
@@ -46,149 +59,185 @@ export default function App() {
 
   const styles = {
     app: {
-      minHeight: '100vh',
-      background: '#0a0a0f',
-      color: '#e0e0e8',
-      padding: '0 24px 40px 24px',
+      height: '100vh',
+      background: '#f4f7fe',
+      color: '#131722',
+      display: 'flex',
+      fontFamily: "'Inter', sans-serif",
+      overflow: 'hidden',
     },
-    // ---- Header ----
+    leftSidebar: {
+      width: 280,
+      background: '#ffffff',
+      display: 'flex',
+      flexDirection: 'column',
+      boxShadow: '4px 0 24px rgba(0,0,0,0.02)',
+      zIndex: 10,
+    },
+    logoArea: {
+      padding: '24px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 12,
+    },
+    logoText: {
+      fontSize: 22,
+      fontWeight: 800,
+      color: '#131722',
+      letterSpacing: -0.5,
+    },
+    mainContent: {
+      flex: 1,
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden',
+    },
     header: {
+      height: 72,
+      background: '#ffffff',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: '24px 0 20px 0',
-      borderBottom: '1px solid rgba(255,255,255,0.04)',
-      marginBottom: 24,
+      padding: '0 24px',
+      boxShadow: '0 4px 24px rgba(0,0,0,0.02)',
+      zIndex: 5,
     },
-    logoArea: {
+    topTickers: {
       display: 'flex',
       alignItems: 'center',
-      gap: 16,
+      height: '100%',
     },
-    logo: {
-      fontFamily: "'JetBrains Mono', monospace",
-      fontSize: 32,
-      fontWeight: 700,
-      color: '#fff',
-      letterSpacing: 4,
-    },
-    subtitle: {
-      fontSize: 13,
-      color: '#666',
-      maxWidth: 340,
-    },
-    liveIndicator: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 8,
-    },
-    liveDot: {
-      width: 10,
-      height: 10,
-      borderRadius: '50%',
-      background: '#00e676',
-      boxShadow: '0 0 12px rgba(0,230,118,0.6)',
-      animation: 'archerPulse 2s ease-in-out infinite',
-    },
-    liveText: {
-      fontSize: 13,
-      fontWeight: 700,
-      color: '#00e676',
-      fontFamily: "'JetBrains Mono', monospace",
-      letterSpacing: 2,
-    },
-    // ---- Row 1: Ticker Cards ----
-    tickerRow: {
-      display: 'flex',
-      gap: 14,
-      overflowX: 'auto',
-      paddingBottom: 8,
-      marginBottom: 24,
-      scrollbarWidth: 'thin',
-      scrollbarColor: '#333 transparent',
-    },
-    // ---- Row 2: Live Feed + Fraud Panel ----
-    row2: {
-      display: 'grid',
-      gridTemplateColumns: '40% 60%',
-      gap: 16,
-      marginBottom: 24,
-      minHeight: 420,
-    },
-    // ---- Row 3: Chart + Flagged ----
-    row3: {
-      display: 'grid',
-      gridTemplateColumns: '55% 45%',
-      gap: 16,
-      marginBottom: 24,
-      minHeight: 380,
-    },
-    // ---- Footer ----
-    footer: {
-      textAlign: 'center',
-      padding: '20px 0',
-      borderTop: '1px solid rgba(255,255,255,0.04)',
+    statusBadge: {
+      padding: '6px 12px',
+      borderRadius: 20,
       fontSize: 12,
-      color: '#444',
-      fontFamily: "'JetBrains Mono', monospace",
+      fontWeight: 600,
+      background: connected ? '#e6f5ef' : '#fdedef',
+      color: connected ? '#089981' : '#f23645',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 6,
     },
+    gridArea: {
+      flex: 1,
+      padding: 24,
+      display: 'grid',
+      gridTemplateColumns: '280px 1fr 320px',
+      gap: 24,
+      overflow: 'hidden',
+    },
+    column: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 24,
+      overflow: 'hidden',
+    },
+    card: {
+      background: '#ffffff',
+      borderRadius: 16,
+      boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden',
+    },
+    cardTitle: {
+      padding: '20px 20px 12px 20px',
+      fontSize: 15,
+      fontWeight: 700,
+      color: '#131722',
+    }
   };
 
   return (
     <div style={styles.app}>
-      <style>{PULSE_CSS}</style>
-
-      {/* ---- Header ---- */}
-      <header style={styles.header}>
+      
+      {/* --- LEFT SIDEBAR --- */}
+      <div style={styles.leftSidebar}>
         <div style={styles.logoArea}>
-          <div>
-            <div style={styles.logo}>ARCHER</div>
-            <div style={styles.subtitle}>
-              Real-Time Financial Sentiment &amp; Fraud Risk Engine
+          <div style={{ width: 32, height: 32, background: '#131722', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ color: '#fff', fontWeight: 700, fontSize: 18 }}>A</span>
+          </div>
+          <div style={styles.logoText}>Archer</div>
+        </div>
+        
+        {/* We reuse LiveFeed as our sidebar activity log, fitting perfectly without dummy buttons */}
+        <div style={{ padding: '0 24px 12px 24px', fontSize: 13, fontWeight: 700, color: '#787b86', marginTop: 12 }}>
+          LIVE FEED
+        </div>
+        <div style={{ flex: 1, overflowY: 'auto' }}>
+           <LiveFeed messages={messages} connected={connected} />
+        </div>
+      </div>
+
+      {/* --- MAIN CONTENT --- */}
+      <div style={styles.mainContent}>
+        
+        {/* HEADER */}
+        <header style={styles.header}>
+          <div style={styles.topTickers}>
+            {tickers.slice(0, 5).map(t => <MiniTicker key={t.ticker} ticker={t} />)}
+          </div>
+          <div style={styles.statusBadge}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: connected ? '#089981' : '#f23645' }} />
+            {connected ? 'System Online' : 'Connecting...'}
+          </div>
+        </header>
+
+        {/* 3-COLUMN GRID */}
+        <div style={styles.gridArea}>
+          
+          {/* COLUMN 1: System Overview & Fraud Risk */}
+          <div style={styles.column}>
+            {/* System Overview Card */}
+            <div style={{ ...styles.card, padding: 20 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#131722', marginBottom: 16 }}>System Overview</div>
+              <div style={{ fontSize: 28, fontWeight: 700, color: '#089981', marginBottom: 4 }}>
+                {tickers.length > 0 ? (tickers.reduce((sum, t) => sum + (t.last_score || 0), 0) / tickers.length).toFixed(4) : '0.0000'}
+              </div>
+              <div style={{ fontSize: 12, color: '#787b86' }}>Average Market Sentiment</div>
+              
+              <div style={{ height: 1, background: '#f0f3f6', margin: '16px 0' }} />
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                <span style={{ color: '#787b86' }}>Tickers Monitored</span>
+                <span style={{ fontWeight: 600, color: '#131722' }}>{tickers.length}</span>
+              </div>
+            </div>
+
+            {/* Fraud Panel */}
+            <div style={{ ...styles.card, flex: 1 }}>
+              <div style={styles.cardTitle}>Risk Index</div>
+              <FraudPanel />
             </div>
           </div>
+
+          {/* COLUMN 2: Main Chart & Flagged Transactions */}
+          <div style={styles.column}>
+            <div style={{ ...styles.card, flex: 3 }}>
+              <SentimentChart />
+            </div>
+            
+            <div style={{ ...styles.card, flex: 2 }}>
+              <FlaggedTransactions />
+            </div>
+          </div>
+
+          {/* COLUMN 3: Ticker Positions */}
+          <div style={styles.column}>
+            <div style={{ ...styles.card, flex: 1 }}>
+              <div style={{ ...styles.cardTitle, display: 'flex', justifyContent: 'space-between' }}>
+                <span>Positions</span>
+                <span style={{ fontSize: 12, color: '#787b86', fontWeight: 500 }}>Articles | Score</span>
+              </div>
+              <div style={{ padding: '0 20px', overflowY: 'auto' }}>
+                {tickers.map(t => <PositionCard key={t.ticker} ticker={t} />)}
+              </div>
+            </div>
+          </div>
+
         </div>
-        <div style={styles.liveIndicator}>
-          <div style={styles.liveDot} />
-          <span style={styles.liveText}>LIVE</span>
-        </div>
-      </header>
-
-      {/* ---- Row 1: Ticker Cards ---- */}
-      <div style={styles.tickerRow}>
-        {tickers.length > 0
-          ? tickers.map((t) => <TickerCard key={t.ticker} ticker={t} />)
-          : Array.from({ length: 8 }).map((_, i) => (
-              <div
-                key={i}
-                style={{
-                  background: '#12121a',
-                  borderRadius: 16,
-                  border: '1px solid rgba(255,255,255,0.04)',
-                  minWidth: 180,
-                  height: 120,
-                  flexShrink: 0,
-                }}
-              />
-            ))}
       </div>
 
-      {/* ---- Row 2: Live Feed + Fraud Panel ---- */}
-      <div style={styles.row2}>
-        <LiveFeed messages={messages} connected={connected} />
-        <FraudPanel />
-      </div>
-
-      {/* ---- Row 3: Sentiment Chart + Flagged Transactions ---- */}
-      <div style={styles.row3}>
-        <SentimentChart />
-        <FlaggedTransactions />
-      </div>
-
-      {/* ---- Footer ---- */}
-      <footer style={styles.footer}>
-        Powered by FinBERT + Kafka + FastAPI
-      </footer>
     </div>
   );
 }

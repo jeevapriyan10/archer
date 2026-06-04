@@ -30,87 +30,48 @@ export default function LiveFeed({ messages, connected }) {
 
   const styles = {
     container: {
-      background: '#12121a',
-      borderRadius: 16,
-      border: '1px solid rgba(255,255,255,0.06)',
-      padding: 20,
       height: '100%',
       display: 'flex',
       flexDirection: 'column',
     },
-    header: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginBottom: 16,
-    },
-    title: {
-      fontSize: 16,
-      fontWeight: 600,
-      color: '#fff',
-    },
-    statusDot: {
-      width: 8,
-      height: 8,
-      borderRadius: '50%',
-      background: connected ? '#00e676' : '#ff1744',
-      boxShadow: connected
-        ? '0 0 8px rgba(0,230,118,0.6)'
-        : '0 0 8px rgba(255,23,68,0.6)',
-      display: 'inline-block',
-      marginRight: 6,
-    },
-    statusText: {
-      fontSize: 12,
-      color: connected ? '#00e676' : '#ff1744',
-    },
     list: {
       flex: 1,
       overflowY: 'auto',
-      maxHeight: 400,
-      paddingRight: 4,
     },
     item: {
       display: 'flex',
       alignItems: 'flex-start',
       gap: 10,
-      padding: '10px 0',
-      borderBottom: '1px solid rgba(255,255,255,0.04)',
+      padding: '12px 24px',
+      borderBottom: '1px solid #f0f3f6',
       animation: 'archerSlideIn 0.3s ease-out',
     },
     tickerBadge: {
-      fontFamily: "'JetBrains Mono', monospace",
-      fontSize: 11,
+      fontSize: 12,
       fontWeight: 700,
-      padding: '3px 8px',
-      borderRadius: 6,
-      background: 'rgba(255,255,255,0.06)',
-      color: '#fff',
+      color: '#131722',
       flexShrink: 0,
-      minWidth: 50,
-      textAlign: 'center',
+      width: 45,
     },
     headline: {
       fontSize: 13,
-      color: '#b0b0c0',
+      color: '#131722',
       flex: 1,
       lineHeight: 1.4,
     },
     scoreChip: {
       fontSize: 12,
       fontWeight: 600,
-      fontFamily: "'JetBrains Mono', monospace",
       flexShrink: 0,
     },
     time: {
-      fontSize: 10,
-      color: '#555',
+      fontSize: 11,
+      color: '#787b86',
       flexShrink: 0,
-      minWidth: 50,
       textAlign: 'right',
     },
     empty: {
-      color: '#555',
+      color: '#787b86',
       fontSize: 13,
       textAlign: 'center',
       padding: 40,
@@ -121,15 +82,7 @@ export default function LiveFeed({ messages, connected }) {
     <div style={styles.container}>
       <style>{ANIMATION_CSS}</style>
 
-      <div style={styles.header}>
-        <span style={styles.title}>Live Feed</span>
-        <span style={{ display: 'flex', alignItems: 'center' }}>
-          <span style={styles.statusDot} />
-          <span style={styles.statusText}>
-            {connected ? 'Connected' : 'Disconnected'}
-          </span>
-        </span>
-      </div>
+      {/* Header removed for sidebar tab integration */}
 
       <div style={styles.list}>
         {feedItems.length === 0 ? (
@@ -155,14 +108,15 @@ export default function LiveFeed({ messages, connected }) {
                 <span style={styles.tickerBadge}>
                   {data.ticker || '---'}
                 </span>
-                <span style={{ ...styles.scoreChip, color: labelColor }}>
-                  {label || (msg.type === 'fraud' ? 'FRAUD' : '---')}
-                </span>
-                <span style={styles.headline}>{headline}</span>
-                <span style={{ ...styles.scoreChip, color: score > 0 ? '#00e676' : score < 0 ? '#ff1744' : '#78909c' }}>
-                  {score > 0 ? '+' : ''}{Number(score).toFixed(2)}
-                </span>
-                <span style={styles.time}>{timeStr}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
+                    <span style={{ ...styles.scoreChip, color: labelColor }}>
+                      {label || (msg.type === 'fraud' ? 'FRAUD' : '---')}
+                    </span>
+                    <span style={styles.time}>{timeStr}</span>
+                  </div>
+                  <span style={styles.headline}>{headline}</span>
+                </div>
               </div>
             );
           })

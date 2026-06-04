@@ -42,39 +42,33 @@ export default function SentimentChart() {
 
   const styles = {
     container: {
-      background: '#12121a',
-      borderRadius: 16,
-      border: '1px solid rgba(255,255,255,0.06)',
-      padding: 20,
       height: '100%',
       display: 'flex',
       flexDirection: 'column',
+      padding: '20px',
     },
     header: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 16,
+      display: 'none',
     },
     title: {
-      fontSize: 16,
+      fontSize: 18,
       fontWeight: 600,
-      color: '#fff',
+      color: '#131722',
     },
     select: {
-      background: '#1a1a28',
-      border: '1px solid rgba(255,255,255,0.1)',
-      borderRadius: 8,
-      color: '#fff',
+      background: '#f0f3f6',
+      border: 'none',
+      borderRadius: 6,
+      color: '#131722',
       padding: '6px 12px',
       fontSize: 13,
-      fontFamily: "'JetBrains Mono', monospace",
+      fontWeight: 500,
       cursor: 'pointer',
       outline: 'none',
     },
     empty: {
-      color: '#555',
-      fontSize: 13,
+      color: '#787b86',
+      fontSize: 14,
       textAlign: 'center',
       padding: 40,
       flex: 1,
@@ -90,16 +84,17 @@ export default function SentimentChart() {
     const item = payload[0].payload;
     return (
       <div style={{
-        background: '#1a1a28',
-        border: '1px solid rgba(255,255,255,0.1)',
-        borderRadius: 10,
-        padding: '10px 14px',
+        background: '#ffffff',
+        border: '1px solid #e0e3eb',
+        borderRadius: 8,
+        padding: '12px 16px',
         maxWidth: 300,
+        boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
       }}>
-        <div style={{ fontSize: 12, color: '#fff', fontWeight: 600, marginBottom: 4 }}>
+        <div style={{ fontSize: 13, color: '#131722', fontWeight: 600, marginBottom: 4 }}>
           Score: {item.score > 0 ? '+' : ''}{item.score.toFixed(4)}
         </div>
-        <div style={{ fontSize: 11, color: '#888', lineHeight: 1.4 }}>
+        <div style={{ fontSize: 12, color: '#787b86', lineHeight: 1.4 }}>
           {item.headline}
         </div>
       </div>
@@ -108,14 +103,14 @@ export default function SentimentChart() {
 
   return (
     <div style={styles.container}>
-      <div style={styles.header}>
-        <span style={styles.title}>Sentiment Timeline</span>
+      {/* Header handled by App.js layout, we just put select dropdown here if needed, or remove it. Let's keep select for changing ticker */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
         <select
           style={styles.select}
           value={ticker}
           onChange={(e) => setTicker(e.target.value)}
         >
-          {TICKERS.map((t) => (
+          {['AAPL', 'TSLA', 'GOOGL', 'MSFT', 'AMZN', 'META', 'NVDA', 'JPM'].map((t) => (
             <option key={t} value={t}>{t}</option>
           ))}
         </select>
@@ -125,21 +120,23 @@ export default function SentimentChart() {
         <div style={styles.empty}>No sentiment data for {ticker}</div>
       ) : (
         <div style={{ flex: 1, minHeight: 250 }}>
-          <ResponsiveContainer width="100%" height={280}>
+          <ResponsiveContainer width="100%" height={500}>
             <LineChart data={data} margin={{ top: 10, right: 20, bottom: 10, left: -10 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#e0e3eb" vertical={false} />
               <XAxis
                 dataKey="time"
-                tick={{ fill: '#555', fontSize: 11 }}
-                axisLine={{ stroke: 'rgba(255,255,255,0.06)' }}
+                tick={{ fill: '#787b86', fontSize: 11 }}
+                axisLine={{ stroke: '#e0e3eb' }}
+                tickLine={false}
               />
               <YAxis
                 domain={[-1, 1]}
-                tick={{ fill: '#555', fontSize: 11 }}
-                axisLine={{ stroke: 'rgba(255,255,255,0.06)' }}
+                tick={{ fill: '#787b86', fontSize: 11 }}
+                axisLine={{ stroke: '#e0e3eb' }}
+                tickLine={false}
                 tickFormatter={(v) => v.toFixed(1)}
               />
-              <ReferenceLine y={0} stroke="rgba(255,255,255,0.15)" strokeDasharray="4 4" />
+              <ReferenceLine y={0} stroke="#b2b5be" strokeDasharray="4 4" />
               <Tooltip content={<CustomTooltip />} />
               <Line
                 type="monotone"

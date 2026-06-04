@@ -10,9 +10,9 @@ import React from 'react';
 
 // Sentiment label -> badge colour mapping
 const LABEL_COLORS = {
-  BULLISH: '#00e676',
-  BEARISH: '#ff1744',
-  NEUTRAL: '#78909c',
+  BULLISH: '#089981', // TradingView Green
+  BEARISH: '#f23645', // TradingView Red
+  NEUTRAL: '#787b86',
 };
 
 export default function TickerCard({ ticker }) {
@@ -22,30 +22,22 @@ export default function TickerCard({ ticker }) {
   const label = (ticker.last_label || 'NEUTRAL').toUpperCase();
   const badgeColor = LABEL_COLORS[label] || LABEL_COLORS.NEUTRAL;
 
-  // Compute how long ago the last update was for relative time display
   const lastUpdated = ticker.last_updated
     ? formatRelativeTime(new Date(ticker.last_updated))
     : 'N/A';
 
-  // Score determines the glow colour: green for positive, red for negative
-  const glowColor = score > 0
-    ? `rgba(0, 230, 118, ${Math.min(Math.abs(score) * 0.4, 0.35)})`
-    : score < 0
-      ? `rgba(255, 23, 68, ${Math.min(Math.abs(score) * 0.4, 0.35)})`
-      : 'rgba(120, 144, 156, 0.08)';
-
   const styles = {
     card: {
-      background: '#12121a',
-      border: `1px solid ${score > 0 ? 'rgba(0,230,118,0.2)' : score < 0 ? 'rgba(255,23,68,0.2)' : 'rgba(255,255,255,0.06)'}`,
-      borderRadius: 16,
-      padding: '20px 22px',
-      minWidth: 180,
-      maxWidth: 200,
+      background: '#ffffff',
+      border: `1px solid #e0e3eb`,
+      borderRadius: 12,
+      padding: '16px 20px',
+      minWidth: 160,
+      maxWidth: 180,
       flexShrink: 0,
-      boxShadow: `0 0 20px ${glowColor}`,
-      transition: 'all 0.4s ease',
-      cursor: 'default',
+      transition: 'box-shadow 0.2s ease',
+      cursor: 'pointer',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
     },
     header: {
       display: 'flex',
@@ -54,33 +46,29 @@ export default function TickerCard({ ticker }) {
       marginBottom: 12,
     },
     symbol: {
-      fontFamily: "'JetBrains Mono', monospace",
       fontWeight: 700,
-      fontSize: 20,
-      color: '#fff',
-      letterSpacing: 1,
+      fontSize: 16,
+      color: '#131722',
+      letterSpacing: 0.5,
     },
     badge: {
       fontSize: 10,
       fontWeight: 600,
-      padding: '3px 8px',
-      borderRadius: 6,
-      background: `${badgeColor}22`,
+      padding: '2px 6px',
+      borderRadius: 4,
+      background: label === 'BULLISH' ? '#e6f5ef' : label === 'BEARISH' ? '#fdedef' : '#f0f3f6',
       color: badgeColor,
-      letterSpacing: 0.5,
     },
     score: {
-      fontSize: 32,
-      fontWeight: 700,
-      fontFamily: "'JetBrains Mono', monospace",
-      color: score > 0 ? '#00e676' : score < 0 ? '#ff1744' : '#78909c',
-      transition: 'color 0.5s ease',
-      marginBottom: 8,
+      fontSize: 24,
+      fontWeight: 600,
+      color: score > 0 ? '#089981' : score < 0 ? '#f23645' : '#787b86',
+      marginBottom: 6,
     },
     meta: {
-      fontSize: 11,
-      color: '#666',
-      lineHeight: 1.6,
+      fontSize: 12,
+      color: '#787b86',
+      lineHeight: 1.4,
     },
   };
 

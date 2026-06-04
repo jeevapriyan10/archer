@@ -35,28 +35,10 @@ export default function FraudPanel() {
 
   const styles = {
     container: {
-      background: '#12121a',
-      borderRadius: 16,
-      border: '1px solid rgba(255,255,255,0.06)',
-      padding: 20,
-      height: '100%',
       display: 'flex',
       flexDirection: 'column',
-    },
-    header: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 16,
-    },
-    title: {
-      fontSize: 16,
-      fontWeight: 600,
-      color: '#fff',
-    },
-    refresh: {
-      fontSize: 11,
-      color: '#555',
+      height: '100%',
+      overflow: 'hidden',
     },
     table: {
       width: '100%',
@@ -65,34 +47,37 @@ export default function FraudPanel() {
     th: {
       fontSize: 11,
       fontWeight: 600,
-      color: '#666',
-      textAlign: 'left',
-      padding: '8px 10px',
-      borderBottom: '1px solid rgba(255,255,255,0.06)',
-      textTransform: 'uppercase',
+      color: '#787b86',
+      textAlign: 'right',
+      padding: '8px 20px',
+      borderBottom: '1px solid #f0f3f6',
       letterSpacing: 0.5,
+    },
+    thLeft: {
+      textAlign: 'left',
     },
     td: {
       fontSize: 13,
-      padding: '10px 10px',
-      borderBottom: '1px solid rgba(255,255,255,0.03)',
-      color: '#b0b0c0',
+      padding: '10px 20px',
+      borderBottom: '1px solid #f0f3f6',
+      color: '#131722',
+      textAlign: 'right',
+    },
+    tdLeft: {
+      textAlign: 'left',
+      fontWeight: 600,
     },
     row: {
       cursor: 'pointer',
       transition: 'background 0.2s ease',
     },
     badge: (level) => ({
-      fontSize: 10,
-      fontWeight: 700,
-      padding: '3px 8px',
-      borderRadius: 6,
-      background: `${LEVEL_COLORS[level] || '#78909c'}22`,
-      color: LEVEL_COLORS[level] || '#78909c',
-      letterSpacing: 0.5,
+      fontSize: 11,
+      fontWeight: 600,
+      color: LEVEL_COLORS[level] || '#787b86',
     }),
     expandRow: {
-      background: 'rgba(255,255,255,0.02)',
+      background: '#f8f9fb',
     },
     signalContainer: {
       padding: '12px 20px',
@@ -102,24 +87,24 @@ export default function FraudPanel() {
     },
     signalLabel: {
       fontSize: 11,
-      color: '#888',
+      color: '#787b86',
       marginBottom: 3,
     },
     progressTrack: {
-      height: 6,
-      borderRadius: 3,
-      background: 'rgba(255,255,255,0.06)',
+      height: 4,
+      borderRadius: 2,
+      background: '#e0e3eb',
       overflow: 'hidden',
     },
     progressBar: (value, color) => ({
       height: '100%',
-      borderRadius: 3,
+      borderRadius: 2,
       width: `${Math.min(value * 100, 100)}%`,
       background: color,
       transition: 'width 0.5s ease',
     }),
     empty: {
-      color: '#555',
+      color: '#787b86',
       fontSize: 13,
       textAlign: 'center',
       padding: 40,
@@ -154,14 +139,7 @@ export default function FraudPanel() {
 
   return (
     <div style={styles.container}>
-      <div style={styles.header}>
-        <span style={styles.title}>Fraud Risk Index</span>
-        <span style={styles.refresh}>
-          {lastRefresh
-            ? `Updated ${lastRefresh.toLocaleTimeString()}`
-            : 'Loading...'}
-        </span>
-      </div>
+      {/* Header removed as it is now provided by App.js Watchlist title */}
 
       {risks.length === 0 ? (
         <div style={styles.empty}>No fraud risk data available</div>
@@ -170,11 +148,9 @@ export default function FraudPanel() {
           <table style={styles.table}>
             <thead>
               <tr>
-                <th style={styles.th}>Ticker</th>
+                <th style={{ ...styles.th, ...styles.thLeft }}>Symbol</th>
                 <th style={styles.th}>Score</th>
                 <th style={styles.th}>Level</th>
-                <th style={styles.th}>Bearish</th>
-                <th style={styles.th}>Articles</th>
               </tr>
             </thead>
             <tbody>
@@ -184,7 +160,7 @@ export default function FraudPanel() {
                     style={{
                       ...styles.row,
                       background: expandedTicker === r.ticker
-                        ? 'rgba(255,255,255,0.03)'
+                        ? '#f8f9fb'
                         : 'transparent',
                     }}
                     onClick={() =>
@@ -193,29 +169,23 @@ export default function FraudPanel() {
                       )
                     }
                     onMouseEnter={(e) =>
-                      (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')
+                      (e.currentTarget.style.background = '#f8f9fb')
                     }
                     onMouseLeave={(e) =>
                       (e.currentTarget.style.background =
                         expandedTicker === r.ticker
-                          ? 'rgba(255,255,255,0.03)'
+                          ? '#f8f9fb'
                           : 'transparent')
                     }
                   >
-                    <td style={{ ...styles.td, fontFamily: "'JetBrains Mono', monospace", fontWeight: 600, color: '#fff' }}>
+                    <td style={{ ...styles.td, ...styles.tdLeft }}>
                       {r.ticker}
                     </td>
-                    <td style={{ ...styles.td, fontFamily: "'JetBrains Mono', monospace", color: LEVEL_COLORS[r.risk_level] || '#78909c' }}>
+                    <td style={{ ...styles.td, color: LEVEL_COLORS[r.risk_level] || '#787b86' }}>
                       {r.fraud_risk_score.toFixed(4)}
                     </td>
                     <td style={styles.td}>
                       <span style={styles.badge(r.risk_level)}>{r.risk_level}</span>
-                    </td>
-                    <td style={{ ...styles.td, fontFamily: "'JetBrains Mono', monospace" }}>
-                      {(r.bearish_ratio * 100).toFixed(1)}%
-                    </td>
-                    <td style={{ ...styles.td, fontFamily: "'JetBrains Mono', monospace" }}>
-                      {r.total_articles}
                     </td>
                   </tr>
                   {expandedTicker === r.ticker && (

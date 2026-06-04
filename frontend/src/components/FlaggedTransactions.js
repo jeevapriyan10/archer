@@ -26,19 +26,13 @@ export default function FlaggedTransactions() {
 
   const styles = {
     container: {
-      background: '#12121a',
-      borderRadius: 16,
-      border: '1px solid rgba(255,255,255,0.06)',
-      padding: 20,
-      height: '100%',
       display: 'flex',
       flexDirection: 'column',
+      height: '100%',
+      overflow: 'hidden',
     },
     title: {
-      fontSize: 16,
-      fontWeight: 600,
-      color: '#fff',
-      marginBottom: 16,
+      display: 'none',
     },
     allClear: {
       display: 'flex',
@@ -47,22 +41,22 @@ export default function FlaggedTransactions() {
       justifyContent: 'center',
       flex: 1,
       gap: 12,
-      padding: 40,
+      padding: 20,
     },
     checkmark: {
       width: 48,
       height: 48,
       borderRadius: '50%',
-      background: 'rgba(0,230,118,0.12)',
+      background: '#e6f5ef',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       fontSize: 24,
-      color: '#00e676',
+      color: '#089981',
     },
     clearText: {
       fontSize: 14,
-      color: '#00e676',
+      color: '#089981',
       fontWeight: 500,
     },
     table: {
@@ -72,34 +66,33 @@ export default function FlaggedTransactions() {
     th: {
       fontSize: 11,
       fontWeight: 600,
-      color: '#666',
+      color: '#787b86',
       textAlign: 'left',
-      padding: '8px 10px',
-      borderBottom: '1px solid rgba(255,255,255,0.06)',
-      textTransform: 'uppercase',
+      padding: '8px 20px',
+      borderBottom: '1px solid #f0f3f6',
       letterSpacing: 0.5,
     },
     td: {
       fontSize: 13,
-      padding: '10px 10px',
-      borderBottom: '1px solid rgba(255,255,255,0.03)',
-      color: '#b0b0c0',
+      padding: '10px 20px',
+      borderBottom: '1px solid #f0f3f6',
+      color: '#131722',
     },
     directionBadge: (dir) => ({
-      fontSize: 10,
-      fontWeight: 700,
-      padding: '3px 8px',
-      borderRadius: 6,
-      background: dir === 'BUY' ? 'rgba(68,138,255,0.15)' : 'rgba(255,23,68,0.15)',
-      color: dir === 'BUY' ? '#448aff' : '#ff1744',
+      fontSize: 11,
+      fontWeight: 600,
+      padding: '2px 6px',
+      borderRadius: 4,
+      background: dir === 'BUY' ? '#e6f5ef' : '#fdedef',
+      color: dir === 'BUY' ? '#089981' : '#f23645',
     }),
     flagged: {
-      fontSize: 10,
-      fontWeight: 700,
-      padding: '3px 8px',
-      borderRadius: 6,
-      background: 'rgba(255,23,68,0.15)',
-      color: '#ff1744',
+      fontSize: 11,
+      fontWeight: 600,
+      padding: '2px 6px',
+      borderRadius: 4,
+      background: '#fdedef',
+      color: '#f23645',
     },
   };
 
@@ -141,10 +134,10 @@ export default function FlaggedTransactions() {
             <tbody>
               {transactions.map((tx, i) => (
                 <tr key={tx.id || i}>
-                  <td style={{ ...styles.td, fontFamily: "'JetBrains Mono', monospace", fontWeight: 600, color: '#fff' }}>
+                  <td style={{ ...styles.td, fontWeight: 600 }}>
                     {tx.ticker}
                   </td>
-                  <td style={{ ...styles.td, fontFamily: "'JetBrains Mono', monospace" }}>
+                  <td style={styles.td}>
                     {formatUSD(tx.amount)}
                   </td>
                   <td style={styles.td}>
@@ -152,7 +145,7 @@ export default function FlaggedTransactions() {
                       {tx.direction}
                     </span>
                   </td>
-                  <td style={{ ...styles.td, fontSize: 12 }}>
+                  <td style={{ ...styles.td, fontSize: 12, color: '#787b86' }}>
                     {tx.timestamp
                       ? new Date(tx.timestamp).toLocaleString()
                       : 'N/A'}
