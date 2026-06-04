@@ -24,6 +24,9 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 from db.models import SentimentScore, Transaction, FraudAssessment
 
+# API URL for pushing alerts — configurable via env var for Docker
+API_URL = os.environ.get("API_URL", "http://localhost:8000")
+
 # All 8 monitored tickers
 TICKERS = ["AAPL", "TSLA", "GOOGL", "MSFT", "AMZN", "META", "NVDA", "JPM"]
 
@@ -247,7 +250,7 @@ class FraudEngine:
                 # datetime is not JSON-serialisable; convert to ISO string
                 payload["assessed_at"] = payload["assessed_at"].isoformat()
                 requests.post(
-                    "http://localhost:8000/internal/push-fraud",
+                    f"{API_URL}/internal/push-fraud",
                     json=payload,
                     timeout=5,
                 )

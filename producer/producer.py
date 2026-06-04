@@ -23,14 +23,14 @@ import json
 import time
 import random
 import string
+import os
 
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
 
-# Kafka broker address — localhost:9092 maps to the PLAINTEXT_HOST listener
-# defined in docker-compose.yml, allowing host-machine access to Kafka
-KAFKA_BROKER = "localhost:9092"
+# Kafka broker address — read from env var in Docker, fall back to localhost
+KAFKA_BROKER = os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
 
 # Target Kafka topic where all raw news articles are published
 KAFKA_TOPIC = "raw-news"

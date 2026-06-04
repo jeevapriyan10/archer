@@ -88,9 +88,13 @@ print("[ARCHER] Database initialized. Connecting to Kafka...")
 # pyrefly: ignore [missing-import]
 from kafka import KafkaConsumer
 
+# Read Kafka broker from env var in Docker, fall back to localhost for local dev
+KAFKA_BROKER = os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
+API_URL = os.environ.get("API_URL", "http://localhost:8000")
+
 consumer = KafkaConsumer(
     "raw-news",
-    bootstrap_servers="localhost:9092",
+    bootstrap_servers=KAFKA_BROKER,
     group_id="sentiment-group",
     auto_offset_reset="earliest",
     value_deserializer=lambda m: json.loads(m.decode("utf-8")),
@@ -247,7 +251,7 @@ try:
         # Push to API WebSocket queue (fire-and-forget)
         try:
             requests.post(
-                "http://localhost:8000/internal/push-sentiment",
+                f"{API_URL}/internal/push-sentiment",
                 json=enriched,
                 timeout=1,
             )

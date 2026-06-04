@@ -1,10 +1,15 @@
 # =============================================================================
-# Archer — Docker Compose Configuration
+# Archer -- Docker Compose Configuration
 # =============================================================================
-# Defines the core infrastructure services for the Archer fintech pipeline:
-#   1. Zookeeper  — Coordination service required by Kafka
-#   2. Kafka      — Message broker for streaming financial news articles
-#   3. PostgreSQL — Persistent storage for processed sentiment data
+# Complete system orchestration for the Archer fintech pipeline:
+#   1. Zookeeper  -- Coordination service required by Kafka
+#   2. Kafka      -- Message broker for streaming financial news articles
+#   3. PostgreSQL -- Persistent storage for processed sentiment data
+#   4. Producer   -- Simulates real-time financial news feed into Kafka
+#   5. Consumer   -- FinBERT sentiment analysis of news from Kafka
+#   6. API        -- FastAPI REST + WebSocket backend
+#   7. Fraud      -- Correlation engine running on 5-minute schedule
+#   8. Frontend   -- React dashboard on port 3000
 # =============================================================================
 
 version: '3.8'
@@ -27,8 +32,8 @@ services:
   # ---------------------------------------------------------------------------
   # Kafka: Distributed event streaming platform
   # Two listeners are configured:
-  #   - PLAINTEXT (kafka:29092)       → for inter-container communication
-  #   - PLAINTEXT_HOST (localhost:9092) → for host-machine access (dev tools)
+  #   - PLAINTEXT (kafka:29092)        -- for inter-container communication
+  #   - PLAINTEXT_HOST (localhost:9092) -- for host-machine access (dev tools)
   # Replication factor is 1 since we run a single-broker setup.
   # ---------------------------------------------------------------------------
   kafka:
@@ -60,6 +65,95 @@ services:
       POSTGRES_DB: archerdb
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U archer -d archerdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # Producer: Generates synthetic financial news articles into Kafka
+  # ---------------------------------------------------------------------------
+  producer:
+    build:
+      context: .
+      dockerfile: producer/Dockerfile
+    depends_on:
+      - kafka
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+    restart: on-failure
+
+  # ---------------------------------------------------------------------------
+  # Consumer: FinBERT sentiment analysis pipeline (Kafka -> DB)
+  # The model directory is mounted from the host to avoid baking 400MB+
+  # model weights into the Docker image.
+  # ---------------------------------------------------------------------------
+  consumer:
+    build:
+      context: .
+      dockerfile: consumer/Dockerfile
+    depends_on:
+      kafka:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      DB_URL: postgresql+psycopg2://archer:archer123@postgres:5432/archerdb
+      API_URL: http://api:8000
+    volumes:
+      - ./model/finbert:/app/model/finbert
+    restart: on-failure
+
+  # ---------------------------------------------------------------------------
+  # API: FastAPI REST + WebSocket backend
+  # ---------------------------------------------------------------------------
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_URL: postgresql+psycopg2://archer:archer123@postgres:5432/archerdb
+    restart: on-failure
+
+  # ---------------------------------------------------------------------------
+  # Fraud Engine: Multi-signal fraud correlation running every 5 minutes
+  # ---------------------------------------------------------------------------
+  fraud:
+    build:
+      context: .
+      dockerfile: fraud/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      api:
+        condition: service_started
+    environment:
+      DB_URL: postgresql+psycopg2://archer:archer123@postgres:5432/archerdb
+      API_URL: http://api:8000
+    restart: on-failure
+
+  # ---------------------------------------------------------------------------
+  # Frontend: React dashboard served on port 3000
+  # ---------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    environment:
+      REACT_APP_API_URL: http://localhost:8000
+      REACT_APP_WS_URL: ws://localhost:8000/ws/sentiment
+    restart: on-failure
 
 # Named volumes for data persistence across container lifecycles
 volumes:
