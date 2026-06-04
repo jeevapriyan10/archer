@@ -56,6 +56,26 @@ class FraudRiskSchema(BaseModel):
     risk_level: str
 
 
+class FraudAssessmentSchema(BaseModel):
+    """Full multi-signal fraud assessment produced by the correlation engine."""
+    model_config = ConfigDict(from_attributes=True)
+
+    id: Optional[str] = None
+    ticker: str
+    fraud_risk_score: float
+    risk_level: str
+    sentiment_velocity: Optional[float] = 0.0
+    bearish_concentration: Optional[float] = 0.0
+    transaction_anomaly: Optional[float] = 0.0
+    timing_correlation: Optional[float] = 0.0
+    total_transactions: Optional[int] = 0
+    sell_ratio: Optional[float] = 0.0
+    avg_transaction_size: Optional[float] = 0.0
+    recent_bearish_count: Optional[int] = 0
+    assessment_window_minutes: Optional[int] = 60
+    assessed_at: Optional[datetime] = None
+
+
 class HealthSchema(BaseModel):
     status: str
     timestamp: datetime

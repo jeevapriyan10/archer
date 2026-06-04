@@ -64,3 +64,35 @@ class Transaction(Base):
         DateTime, default=lambda: datetime.now(timezone.utc)
     )
     flagged: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
+class FraudAssessment(Base):
+    """
+    Stores multi-signal fraud risk assessments produced by the correlation engine.
+    Each row captures a point-in-time snapshot of all 4 fraud signals for a ticker,
+    enabling historical trend analysis and audit trails for flagged activity.
+    """
+    __tablename__ = "fraud_assessments"
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    ticker: Mapped[str] = mapped_column(String(10), nullable=False, index=True)
+    fraud_risk_score: Mapped[float] = mapped_column(Float, nullable=False)
+    risk_level: Mapped[str] = mapped_column(String(10), nullable=False)
+    # Signal 1: rate of sentiment deterioration within the window
+    sentiment_velocity: Mapped[float] = mapped_column(Float, default=0.0)
+    # Signal 2: proportion of bearish articles in the window
+    bearish_concentration: Mapped[float] = mapped_column(Float, default=0.0)
+    # Signal 3: composite anomaly from volume, direction skew, and trade size
+    transaction_anomaly: Mapped[float] = mapped_column(Float, default=0.0)
+    # Signal 4: ratio of trades that occurred before the most negative news
+    timing_correlation: Mapped[float] = mapped_column(Float, default=0.0)
+    total_transactions: Mapped[int] = mapped_column(Integer, default=0)
+    sell_ratio: Mapped[float] = mapped_column(Float, default=0.0)
+    avg_transaction_size: Mapped[float] = mapped_column(Float, default=0.0)
+    recent_bearish_count: Mapped[int] = mapped_column(Integer, default=0)
+    assessment_window_minutes: Mapped[int] = mapped_column(Integer, default=60)
+    assessed_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(timezone.utc), index=True
+    )
